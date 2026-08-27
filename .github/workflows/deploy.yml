@@ -10,6 +10,8 @@ env:
   REGION: asia-northeast3
   REPO: chatbot-repo
   SERVICE: chatbot-api
+  DB_INSTANCE: chatbot-db
+  MODEL: minimax/minimax-m3:free
 
 jobs:
   build:
@@ -45,10 +47,14 @@ jobs:
 
       - name: Cloud Run 배포
         run: |
+          INSTANCE_CONN="${{ secrets.GCP_PROJECT_ID }}:$REGION:$DB_INSTANCE"
           gcloud run deploy $SERVICE \
             --image=$IMAGE \
             --region=$REGION \
             --platform=managed \
             --port=8000 \
             --allow-unauthenticated \
+            --add-cloudsql-instances=$INSTANCE_CONN \
+            --set-secrets="OPENAI_API_KEY=OPENAI_API_KEY:latest,OPENROUTER_API_KEY=OPENROUTER_API_KEY:latest" \
+            --set-env-vars="DB_HOST=/cloudsql/$INSTANCE_CONN,DB_NAME=chatbot_db,DB_USER=chatbot_user,DB_PASSWORD=StrongPassword123!,MODEL=$MODEL" \
             --quiet
